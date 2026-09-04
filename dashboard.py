@@ -7,9 +7,10 @@ import numpy as np
 # 1. LOAD MODEL
 @st.cache_resource
 def load_model():
-    with open('rf_pricing_model.pkl', 'rb') as file:
-        return pickle.load(file)
-
+    # Update the path to include the 'models/' folder
+    with open('models/rf_pricing_model.pkl', 'rb') as file:
+        model = pickle.load(file)
+    return model
 model = load_model()
 
 st.title("E-Commerce Dynamic Pricing Engine")
