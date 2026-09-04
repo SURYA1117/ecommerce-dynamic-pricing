@@ -1,105 +1,105 @@
 import streamlit as st
 import pandas as pd
-import pickle
 import sqlite3
+import pickle
 import numpy as np
 
-# 1. LOAD MODEL
+# Page Configuration
+st.set_page_config(page_title="E-Commerce Dynamic Pricing Engine", layout="wide")
+
+st.title("🛍️ E-Commerce Dynamic Pricing & Revenue Optimization")
+st.markdown("Simulate price changes, analyze demand elasticity, and update live prices instantly.")
+
+# 1. Load the Trained Machine Learning Model (from root directory)
 @st.cache_resource
 def load_model():
-    # Update the path to include the 'models/' folder
-    with open('models/rf_pricing_model.pkl', 'rb') as file:
+    with open('rf_pricing_model.pkl', 'rb') as file:
         model = pickle.load(file)
     return model
+
 model = load_model()
 
-st.title("E-Commerce Dynamic Pricing Engine")
-st.write("Select a specific inventory item to optimize its price.")
-
-# 2. FETCH REAL ITEMS FROM DATABASE
-conn = sqlite3.connect('ecommerce.db')
-# Get a list of actual products from the Kaggle dataset
-categories_df = pd.read_sql("SELECT DISTINCT product_category_name FROM historical_pricing_logs", conn)
-
-# UI: Dropdown menu for the business user
-selected_item = st.selectbox("Select Product Category:", categories_df['product_category_name'].tolist())
-
-# Fetch the real baseline prices for the chosen item
-query = f"""
-    SELECT AVG(unit_price) as current_price, AVG(market_avg_price) as market_price 
-    FROM historical_pricing_logs 
-    WHERE product_category_name = '{selected_item}'
-"""
-item_data = pd.read_sql(query, conn)
-conn.close()
-
-# Extract the real database numbers
-db_current_price = float(item_data['current_price'].iloc[0])
-db_market_price = float(item_data['market_price'].iloc[0])
-
-st.subheader(f"Pricing Optimization for: {selected_item.replace('_', ' ').title()}")
-
-# 3. DISPLAY REAL DATA
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Current Database Price", f"${db_current_price:.2f}")
-with col2:
-    st.metric("Competitor Market Average", f"${db_market_price:.2f}")
-
-# 4. RUN SIMULATION ON THE SPECIFIC ITEM
-min_price = db_current_price * 0.8
-max_price = db_current_price * 1.2
-simulated_prices = np.linspace(min_price, max_price, 20)
-
-results = []
-for test_price in simulated_prices:
-    price_comp = test_price / db_market_price
-    
-    input_data = pd.DataFrame({
-        'unit_price': [test_price],
-        'market_avg_price': [db_market_price],
-        'price_competitiveness': [price_comp]
-    })
-    
-    predicted_qty = model.predict(input_data)[0]
-    predicted_revenue = test_price * predicted_qty
-    
-    results.append({
-        'Simulated Price': test_price,
-        'Predicted Sales Volume': predicted_qty,
-        'Predicted Revenue': predicted_revenue
-    })
-
-results_df = pd.DataFrame(results)
-best_scenario = results_df.loc[results_df['Predicted Revenue'].idxmax()]
-
-# 5. FINAL RECOMMENDATION
-st.success(f"**Action Recommended:** Update price to ${best_scenario['Simulated Price']:.2f} to maximize revenue.")
-
-st.write("### Revenue Curve")
-st.line_chart(data=results_df.set_index('Simulated Price')['Predicted Revenue'])
-    # 6. ACTION EXECUTION: Write-back to the database
-st.divider()
-st.subheader("Execution")
-
-optimal_price = best_scenario['Simulated Price']
-
-if st.button(f"Approve and Update Price to ${optimal_price:.2f}"):
+# 2. Connect to SQLite Database and Load Data
+@st.cache_data(ttl=60)
+def load_data():
     conn = sqlite3.connect('ecommerce.db')
-    cursor = conn.cursor()
-    
-    update_query = f"""
-        UPDATE historical_pricing_logs 
-        SET unit_price = {optimal_price} 
-        WHERE product_category_name = '{selected_item}'
-    """
-    
-    cursor.execute(update_query)
-    conn.commit()
+    df = pd.read_sql("SELECT * FROM historical_pricing_logs", conn)
     conn.close()
+    return df
+
+df = load_data()
+
+# 3. Sidebar Selection for Product Category
+st.sidebar.header("Configuration")
+categories = df['product_category_name'].unique() if 'product_category_name' in df.columns else []
+selected_item = st.sidebar.selectbox("Select Product Category", categories)
+
+if selected_item:
+    # Filter data for selected item
+    item_data = df[df['product_category_name'] == selected_item].iloc[0]
+    current_price = item_data['unit_price']
     
-    st.balloons()
-    st.success("Success! The database has been updated.")
+    st.subheader(f"Analysis for: {selected_item}")
+    st.metric(label="Current Live Price", value=f"${current_price:.2f}")
+
+    # 4. Simulation Logic (What-if scenario testing)
+    st.divider()
+    st.subheader("Price Elasticity & Revenue Simulation")
     
-    # ADD THIS LINE: Forces the app to instantly refresh from the top
-    st.rerun()
+    # Define a range of test prices around the current price
+    price_range = np.linspace(current_price * 0.7, current_price * 1.3, 20)
+    simulation_results = []
+
+    for test_price in price_range:
+        # Prepare input features for the model
+        input_features = np.array([[test_price, item_data.get('comp_1', test_price), item_data.get('freight_price', 10)]])
+        
+        # Predict expected quantity sold
+        predicted_qty = model.predict(input_features)[0]
+        predicted_revenue = test_price * max(predicted_qty, 0)
+        
+        simulation_results.append({
+            'Simulated Price': test_price,
+            'Predicted Revenue': predicted_revenue,
+            'Predicted Quantity': predicted_qty
+        })
+
+    sim_df = pd.DataFrame(simulation_results)
+    
+    # Find optimal price (max revenue)
+    best_scenario = sim_df.loc[sim_df['Predicted Revenue'].idxmax()]
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="Recommended Optimal Price", value=f"${best_scenario['Simulated Price']:.2f}")
+    with col2:
+        st.metric(label="Projected Peak Revenue", value=f"${best_scenario['Predicted Revenue']:.2f}")
+
+    # 5. Visualizing the Revenue Curve
+    st.line_chart(sim_df.set_index('Simulated Price')['Predicted Revenue'])
+
+    # 6. ACTION EXECUTION: Write-back to the database
+    st.divider()
+    st.subheader("Execution")
+
+    optimal_price = best_scenario['Simulated Price']
+
+    if st.button(f"Approve and Update Price to ${optimal_price:.2f}", key="update_price_button"):
+        conn = sqlite3.connect('ecommerce.db')
+        cursor = conn.cursor()
+        
+        update_query = f"""
+            UPDATE historical_pricing_logs 
+            SET unit_price = {optimal_price} 
+            WHERE product_category_name = '{selected_item}'
+        """
+        
+        cursor.execute(update_query)
+        conn.commit()
+        conn.close()
+        
+        st.balloons()
+        st.success("Success! The database has been updated.")
+        
+        # Forces the app to instantly refresh from the top
+        st.rerun()
