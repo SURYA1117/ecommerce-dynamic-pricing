@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Enable CORS so your HTML webpage can talk to your Python backend
+# This is critical so Netlify can talk to Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +20,5 @@ def get_live_prices():
     cursor.execute("SELECT product_category_name, unit_price FROM historical_pricing_logs")
     rows = cursor.fetchall()
     conn.close()
-    
-    # Format data as a dictionary for the frontend
     prices = {row[0]: row[1] for row in rows}
     return {"status": "success", "data": prices}

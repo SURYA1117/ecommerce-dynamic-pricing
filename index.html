@@ -275,13 +275,13 @@
         </div>
 
         <!-- Filter Category Bar -->
-        <div class="filter-bar">
+       <div class="filter-bar">
             <button class="filter-btn active" onclick="filterCategory('All', this)">All Products</button>
-            <button class="filter-btn" onclick="filterCategory('Electronics', this)">Electronics</button>
-            <button class="filter-btn" onclick="filterCategory('Audio/Wearables', this)">Audio</button>
-            <button class="filter-btn" onclick="filterCategory('Footwear', this)">Footwear</button>
-            <button class="filter-btn" onclick="filterCategory('Home Appliances', this)">Home</button>
-            <button class="filter-btn" onclick="filterCategory('Fitness', this)">Fitness</button>
+            <button class="filter-btn" onclick="filterCategory('computers_accessories', this)">Computers</button>
+            <button class="filter-btn" onclick="filterCategory('health_beauty', this)">Health</button>
+            <button class="filter-btn" onclick="filterCategory('watches_gifts', this)">Watches</button>
+            <button class="filter-btn" onclick="filterCategory('perfumery', this)">Perfumery</button>
+            <button class="filter-btn" onclick="filterCategory('garden_tools', this)">Garden</button>
         </div>
 
         <div class="product-grid" id="productGrid">
@@ -291,63 +291,62 @@
 
     <script>
         // Extended product catalog matching database categories
-        let products = [
+       let products = [
             {
-                id: 'Electronics',
-                category: 'Electronics',
+                id: 'computers_accessories', // Matches database key
+                category: 'Computers & Tech',
                 name: 'Pro Ultra 15" Laptop',
-                price: 999.00,
-                original: 1099.00,
+                price: 113.19,
+                original: 130.00,
                 emoji: '💻',
                 msg: 'Original Fixed Price'
             },
             {
-                id: 'Audio/Wearables',
-                category: 'Audio/Wearables',
-                name: 'Active Noise Cancelling Earbuds',
-                price: 249.00,
-                original: 249.00,
-                emoji: '🎧',
-                msg: 'Original Fixed Price'
-            },
-            {
-                id: 'Footwear',
-                category: 'Footwear',
-                name: 'AirStride Running Sneakers',
-                price: 140.00,
-                original: 160.00,
-                emoji: '👟',
-                msg: 'Original Fixed Price'
-            },
-            {
-                id: 'Home Appliances',
-                category: 'Home Appliances',
-                name: 'Smart Air Purifier Pro',
-                price: 180.00,
-                original: 210.00,
-                emoji: '🌀',
-                msg: 'Original Fixed Price'
-            },
-            {
-                id: 'Fitness',
-                category: 'Fitness',
-                name: 'Ergonomic Smart Fitness Watch',
-                price: 120.00,
+                id: 'health_beauty', // Matches database key
+                category: 'Health & Beauty',
+                name: 'Organic Skin Care Set',
+                price: 137.81,
                 original: 150.00,
+                emoji: '✨',
+                msg: 'Original Fixed Price'
+            },
+            {
+                id: 'watches_gifts', // Matches database key
+                category: 'Watches & Gifts',
+                name: 'Luxury Chronograph Watch',
+                price: 145.55,
+                original: 160.00,
                 emoji: '⌚',
                 msg: 'Original Fixed Price'
             },
             {
-                id: 'Gaming',
-                category: 'Gaming',
-                name: 'Mechanical RGB Gaming Keyboard',
-                price: 85.00,
-                original: 100.00,
-                emoji: '⌨️',
+                id: 'perfumery', // Matches database key
+                category: 'Perfumery',
+                name: 'Royal Essence Fragrance',
+                price: 116.91,
+                original: 130.00,
+                emoji: '🌹',
+                msg: 'Original Fixed Price'
+            },
+            {
+                id: 'garden_tools', // Matches database key
+                category: 'Garden Tools',
+                name: 'Smart Robotic Lawn Sprinkler',
+                price: 98.32,
+                original: 110.00,
+                emoji: '🌿',
+                msg: 'Original Fixed Price'
+            },
+            {
+                id: 'furniture_decor', // Matches database key
+                category: 'Furniture & Decor',
+                name: 'Minimalist LED Desk Lamp',
+                price: 69.65,
+                original: 80.00,
+                emoji: '🛋️',
                 msg: 'Original Fixed Price'
             }
         ];
-
         let cartCount = 0;
         let currentFilter = 'All';
 
@@ -418,7 +417,7 @@
         // Background poller querying python database API
         async function fetchLivePrices() {
             try {
-                const response = await fetch('https://localhost:8000/api/prices');
+                const response = await fetch('https://ecommerce-dynamic-pricing.onrender.com/api/prices');
                 const result = await response.json();
                 
                 if (result.status === "success") {
