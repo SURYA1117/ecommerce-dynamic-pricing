@@ -5,7 +5,7 @@ import requests
 
 # Page Configuration
 st.set_page_config(
-    page_title="SmartShop | AI Dynamic Pricing Admin",
+    page_title="SmartShop | Dynamic Pricing Admin",
     page_icon="⚡",
     layout="wide"
 )
