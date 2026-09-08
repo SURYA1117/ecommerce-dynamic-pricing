@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import sqlite3
 import requests
 
 # Page Configuration
 st.set_page_config(
-    page_title="SmartShop | Dynamic Pricing Admin",
+    page_title="SmartShop | AI Dynamic Pricing Admin",
     page_icon="⚡",
     layout="wide"
 )
@@ -70,6 +71,35 @@ with col2:
 
 with col3:
     st.metric(label="Inventory Stock Status", value=f"{stock_level} units", delta="Optimal" if stock_level > 20 else "Low Stock Alert")
+
+st.markdown("---")
+
+# ==========================================
+# AI PRICE VS. TOTAL REVENUE OPTIMIZATION CURVE
+# ==========================================
+st.subheader("📈 AI Price vs. Total Revenue Optimization Curve")
+st.markdown(f"This curve illustrates how market demand elasticity shapes total revenue across various price points for **{selected_category}**.")
+
+# Simulate a range of potential prices around the base price (50% to 150%)
+price_range = np.linspace(base_price * 0.5, base_price * 1.5, 50)
+baseline_demand = 100
+elasticity = 1.5
+
+# Calculate projected demand and total revenue
+simulated_demand = baseline_demand * (price_range / base_price) ** (-elasticity)
+total_revenue = price_range * simulated_demand
+
+# Create DataFrame for charting
+df_revenue_curve = pd.DataFrame({
+    'Optimized Price ($)': price_range,
+    'Projected Total Revenue ($)': total_revenue
+}).set_index('Optimized Price ($)')
+
+# Render the interactive line chart
+st.line_chart(df_revenue_curve)
+
+optimal_price = price_range[total_revenue.argmax()]
+st.success(f"💡 Revenue Maximization Insight: The optimal price point to achieve peak revenue for this category is **${optimal_price:.2f}**.")
 
 st.markdown("---")
 
