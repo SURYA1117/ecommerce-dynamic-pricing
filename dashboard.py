@@ -51,7 +51,6 @@ competitor_price = st.sidebar.number_input("Competitor Benchmark Price ($)", val
 stock_level = st.sidebar.slider("Current Inventory Stock", 1, 500, 45)
 
 # AI Dynamic Pricing Calculation Logic
-# Formula: Base Price * Demand Factor adjusted by stock scarcity penalty/reward
 scarcity_multiplier = 1.1 if stock_level < 20 else (0.95 if stock_level > 200 else 1.0)
 calculated_price = round(base_price * demand_factor * scarcity_multiplier, 2)
 
@@ -75,18 +74,23 @@ with col3:
 st.markdown("---")
 
 # ==========================================
-# AI PRICE VS. TOTAL REVENUE OPTIMIZATION CURVE
+# DYNAMIC AI PRICE VS. TOTAL REVENUE CURVE
 # ==========================================
 st.subheader("📈 AI Price vs. Total Revenue Optimization Curve")
-st.markdown(f"This curve illustrates how market demand elasticity shapes total revenue across various price points for **{selected_category}**.")
+st.markdown(f"The curve below dynamically scales based on your active sidebar settings for **{selected_category}** (Demand Multiplier: `{demand_factor}x`, Stock: `{stock_level} units`).")
 
 # Simulate a range of potential prices around the base price (50% to 150%)
 price_range = np.linspace(base_price * 0.5, base_price * 1.5, 50)
-baseline_demand = 100
-elasticity = 1.5
 
-# Calculate projected demand and total revenue
-simulated_demand = baseline_demand * (price_range / base_price) ** (-elasticity)
+# Dynamically scale baseline demand using the sidebar demand factor and stock scarcity
+base_market_demand = 100
+dynamic_baseline_demand = base_market_demand * demand_factor * (1.3 if stock_level < 20 else (0.85 if stock_level > 200 else 1.0))
+
+# Dynamic elasticity coefficient (higher scarcity makes consumers less price sensitive)
+dynamic_elasticity = 1.5 if stock_level >= 20 else 1.1
+
+# Calculate projected demand and total revenue dynamically
+simulated_demand = dynamic_baseline_demand * (price_range / base_price) ** (-dynamic_elasticity)
 total_revenue = price_range * simulated_demand
 
 # Create DataFrame for charting
@@ -95,11 +99,11 @@ df_revenue_curve = pd.DataFrame({
     'Projected Total Revenue ($)': total_revenue
 }).set_index('Optimized Price ($)')
 
-# Render the interactive line chart
+# Render the interactive line chart (re-renders automatically on slider adjustments)
 st.line_chart(df_revenue_curve)
 
 optimal_price = price_range[total_revenue.argmax()]
-st.success(f"💡 Revenue Maximization Insight: The optimal price point to achieve peak revenue for this category is **${optimal_price:.2f}**.")
+st.success(f"💡 Revenue Maximization Insight: Under current market conditions, the optimal price point to achieve peak revenue is **${optimal_price:.2f}**.")
 
 st.markdown("---")
 
